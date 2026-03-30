@@ -33,7 +33,7 @@ $ nono run --allow-cwd --profile claude-code -- claude
    key first, let me know.
 ```
 
-Nono successfully prevent reading outside of current repository directory. Despite claude's observation that there is no .ssh directory (`No ~/.ssh directory`), it actually exists:
+Nono successfully prevented reading outside of current repository directory. Despite claude's observation that there is no .ssh directory (`No ~/.ssh directory`), it actually exists:
 
 ```sh
 $pwd
