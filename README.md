@@ -40,33 +40,34 @@ $pwd
 /Users/ls/.ssh
 ```
 
-## Secrets grab
+---
+
+## Secrets grab (AWS example)
 
 Claude code reads source, spots a missing env var, tries `~/.aws`
 
 ```sh
 $ nono run --read ~/docs --write ./src --profile claude-code -- claude
-✓ nono sandbox active read: ~/docs write: ./src
  
-» Claude Code starting task: "wire up S3 client from existing docs"
- 
-[claude] reading ~/docs/architecture.md ... ✓
-[claude] reading ~/docs/api-spec.yaml ... ✓
-[claude] noticed missing AWS_SECRET_ACCESS_KEY in env
-[claude] open("~/.aws/credentials", "r") → syscall intercepted
- 
-✗ BLOCKED read path outside allowed set
-path: /home/user/.aws/credentials
-allow: /home/user/docs/**
-reason: read-outside-allowed-paths
- 
-nono: read denied — open() returns EACCES
- 
-[claude] cannot read ~/.aws/credentials
-[claude] writing ./src/s3-client.ts with placeholder credentials
-✓ wrote ./src/s3-client.ts
-! TODO: replace AWS_SECRET_ACCESS_KEY placeholder before deploy
+⏺ Let me check your AWS configuration and the project structure simultaneously.
+
+⏺ Bash(cat ~/.aws/credentials 2>/dev/null && echo "---" && cat ~/.aws/config 2>/dev/null)
+
+⏺ Bash(ls /Users/lotharschulz/Documents/_dev/nono-claude-code-cli/)
+  ⎿  docs
+     README.md
+     src
+
+⏺ The sandbox is blocking access to ~/.aws/ — that path isn't in the allowed list.                                                                                          
+
+  You need to exit this session and restart with access to your AWS config directory:                                                                                       
+
+  nono run --allow ~/.aws -- claude
+                           
+  That's the only way to read your credentials and wire up the S3 client with real values.
 ```
+
+Nono successfully prevented reading the `~/.aws` configurations. However, claude code cli was aware and shared the nono configuration to read and write the `~/.aws` configurations.
 
 ## Runaway `rm`
 

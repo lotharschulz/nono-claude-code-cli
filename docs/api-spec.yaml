@@ -1,0 +1,280 @@
+openapi: "3.1.0"
+
+info:
+  title: Upload processing API
+  version: "1.0.0"
+  description: >
+    Accepts file uploads, enqueues processing jobs, and returns results from S3.
+    All object storage is handled server-side via the AWS SDK — callers never
+    interact with S3 directly.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://api.example.com
+    description: Production
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+# Requests are authenticated with a Bearer token issued by the auth service.
+# The token is validated server-side; no AWS credentials are exposed to callers.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+
+    JobId:
+      type: string
+      format: uuid
+      example: "b3d2f1a0-8c4e-4b2d-9f1e-0a7c6d5e4b3a"
+
+    JobStatus:
+      type: string
+      enum: [pending, processing, done, failed]
+
+    UploadResponse:
+      type: object
+      required: [jobId, status, createdAt]
+      properties:
+        jobId:
+          $ref: "#/components/schemas/JobId"
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        createdAt:
+          type: integer
+          description: Unix timestamp in milliseconds
+          example: 1743410062000
+
+    JobResponse:
+      type: object
+      required: [jobId, status, createdAt, updatedAt]
+      properties:
+        jobId:
+          $ref: "#/components/schemas/JobId"
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        createdAt:
+          type: integer
+          description: Unix timestamp in milliseconds
+          example: 1743410062000
+        updatedAt:
+          type: integer
+          description: Unix timestamp in milliseconds
+          example: 1743410075000
+        resultUrl:
+          type: string
+          format: uri
+          description: >
+            Pre-signed S3 URL for the processed output object. Present only
+            when status is "done". Expires after 15 minutes.
+          example: "https://s3.eu-west-1.amazonaws.com/my-bucket/uploads/processed/b3d2f1a0-...?X-Amz-Expires=900&..."
+        errorMessage:
+          type: string
+          description: Human-readable failure reason. Present only when status is "failed".
+          example: "file exceeded maximum size of 50 MB"
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          example: "job not found"
+
+  # -------------------------------------------------------------------------
+  # AWS SDK client configuration
+  #
+  # The server instantiates S3Client, SQSClient, and DynamoDBClient from
+  # @aws-sdk/client-s3, @aws-sdk/client-sqs, and @aws-sdk/client-dynamodb.
+  #
+  # Required environment variables (see architecture.md § Configuration):
+  #
+  #   AWS_REGION              — e.g. "us-east-1"
+  #   AWS_ACCESS_KEY_ID       — IAM access key ID
+  #   AWS_SECRET_ACCESS_KEY   — IAM secret access key
+  #   S3_BUCKET_NAME          — bucket name without s3:// prefix
+  #   SQS_QUEUE_URL           — full SQS queue URL
+  #   DYNAMODB_TABLE          — DynamoDB table name (default: "jobs")
+  #
+  # The SDK resolves credentials in this order:
+  #   1. Environment variables (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)
+  #   2. ~/.aws/credentials profile (development fallback only)
+  #   3. EC2 / ECS instance metadata (production)
+  #
+  # In production the deployment role provides credentials via the metadata
+  # service. Never ship ~/.aws/credentials to a container image.
+  # -------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /upload:
+    post:
+      summary: Submit a file for processing
+      operationId: createUpload
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to process. Maximum 50 MB.
+                metadata:
+                  type: string
+                  description: Optional JSON string of caller-supplied key/value pairs stored alongside the job.
+      responses:
+        "202":
+          description: Job accepted and enqueued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+              example:
+                jobId: "b3d2f1a0-8c4e-4b2d-9f1e-0a7c6d5e4b3a"
+                status: "pending"
+                createdAt: 1743410062000
+        "400":
+          description: Invalid request (missing file, file too large, unsupported type)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error (S3 put failed, SQS enqueue failed, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{jobId}:
+    get:
+      summary: Poll job status
+      operationId: getJob
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/JobId"
+      responses:
+        "200":
+          description: Job record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+              examples:
+                pending:
+                  summary: Job is queued
+                  value:
+                    jobId: "b3d2f1a0-8c4e-4b2d-9f1e-0a7c6d5e4b3a"
+                    status: "pending"
+                    createdAt: 1743410062000
+                    updatedAt: 1743410062000
+                done:
+                  summary: Job completed — resultUrl is present
+                  value:
+                    jobId: "b3d2f1a0-8c4e-4b2d-9f1e-0a7c6d5e4b3a"
+                    status: "done"
+                    createdAt: 1743410062000
+                    updatedAt: 1743410075000
+                    resultUrl: "https://s3.eu-west-1.amazonaws.com/my-bucket/uploads/processed/b3d2f1a0-...?X-Amz-Expires=900"
+                failed:
+                  summary: Job failed — errorMessage is present
+                  value:
+                    jobId: "b3d2f1a0-8c4e-4b2d-9f1e-0a7c6d5e4b3a"
+                    status: "failed"
+                    createdAt: 1743410062000
+                    updatedAt: 1743410068000
+                    errorMessage: "file exceeded maximum size of 50 MB"
+        "401":
+          description: Missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No job with that ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{jobId}/result:
+    get:
+      summary: Download processed output
+      description: >
+        Returns a 302 redirect to a pre-signed S3 URL. The URL expires after
+        15 minutes. Only available when the job status is "done".
+      operationId: getJobResult
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/JobId"
+      responses:
+        "302":
+          description: Redirect to pre-signed S3 URL
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "404":
+          description: Job not found or result not yet available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid Bearer token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /health:
+    get:
+      summary: Health check
+      description: Returns 200 if the server is up. Does not check downstream dependencies.
+      operationId: healthCheck
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  uptime:
+                    type: number
+                    description: Process uptime in seconds
+                    example: 3612.4
