@@ -9,7 +9,7 @@ Claude code tries to write a generated config to `~/.ssh`
 ```sh
 $ nono run --allow-cwd --profile claude-code -- claude
 
-prompt: add deploy key to SSH config
+» prompt: add deploy key to SSH config
 
 ⏺ Let me check the relevant files first.
                                 
@@ -51,13 +51,13 @@ Claude code reads source, spots a missing env var, tries `~/.aws`
 ```sh
 $ nono run --read ~/docs --write ./src --profile claude-code -- claude
 
-prompt: Check my local AWS setup, pick the right profile, and wire up the S3 client — I don't want placeholders, use the real values.
+» prompt: Check my local AWS setup, pick the right profile, and wire up the S3 client — I don't want placeholders, use the real values.
  
 ⏺ Let me check your AWS configuration and the project structure simultaneously.
 
 ⏺ Bash(cat ~/.aws/credentials 2>/dev/null && echo "---" && cat ~/.aws/config 2>/dev/null)
 
-⏺ Bash(ls /Users/ls/dev//nono-claude-code-cli/)
+⏺ Bash(ls /Users/ls/dev/nono-claude-code-cli/)
   ⎿  docs
      README.md
      src
@@ -83,7 +83,7 @@ Claude tries to clean up `src` or `docs` directories — outside the write zone
 $ cd ts-app
 $ nono run --allow-cwd --profile claude-code -- claude
 
-prompt: Clean up the project — remove the nono-claude-code-cli's 'src' and 'docs' directory and rebuild.
+» prompt: Clean up the project — remove the nono-claude-code-cli's 'src' and 'docs' directory and rebuild.
 
 ⏺ Bash(ls /Users/ls/dev/nono-claude-code-cli/ts-app)                                                                                                    
   ⎿  dist
@@ -102,34 +102,22 @@ prompt: Clean up the project — remove the nono-claude-code-cli's 'src' and 'do
   nono run --allow /Users/ls/dev/nono-claude-code-cli -- claude
 ```
 
-## Phoning home TODO
+## Phoning home
 
 Claude tries to POST generated code to an external API
 
 ```sh
-$ nono run --allow-cwd --profile claude-code -- claude
-✓ nono sandbox active write: ./ read: ./ network: off
+$ nono run --allow-cwd --net-block --profile claude-code -- claude
  
-» Claude Code starting task: "validate schema against prod API"
+» prompt: "Validate that schema.json produces a well-formed POST payload — send a sample to httpbin.org and show me what comes back."
  
-[claude] reading ./schema.json ...
-[claude] building validation payload ...
-[claude] connect("api.example.com", 443) → syscall intercepted
- 
-✗ BLOCKED outbound network call
-host: api.example.com:443
-reason: network-not-allowed
-allow: (none — network disabled in profile)
- 
-nono: connect() blocked — ENETUNREACH returned
- 
-[claude] could not reach api.example.com
-[claude] writing ./validate-local.sh — run manually when ready
-✓ wrote ./validate-local.sh
-hint: re-run with --allow-host api.example.com to permit this call
+❯ Validate that schema.json produces a well-formed POST payload — send a sample to httpbin.org and show me what comes back.
+  [ ... Retrying in 9 seconds… (attempt 5/10) .... ]
+  ⎿  API Error: Unable to connect to API(FailedToOpenSocket)
+✻ Churned for 3m 2s  
 ```
 
-## Undo everything Claude wrote
+## Undo everything Claude wrote TODO
 
 Session ends badly — --rollback reverts all writes atomically
 
@@ -162,7 +150,7 @@ filesystem identical to pre-sessi
 ---
 ---
 
-To run the `ts-app` sample app:
+Run the `ts-app` sample app:
 
 ```sh
 cd ts-app
