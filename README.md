@@ -122,9 +122,17 @@ $ nono run --allow-cwd --net-block --profile claude-code -- claude
 Session ends badly — --rollback reverts all writes atomically
 
 ```sh
-$ cd ts-app && npm install && cd .. && nono run --rollback --allow-cwd --profile claude-code -- claude --max-turns 5
+$ cd ts-app && \
+sudo chown -R 501:20 "/Users/lotharschulz/.npm" && \
+npm install express jsonwebtoken && \
+npm install --save-dev @types/express @types/jsonwebtoken @types/jest @types/supertest jest supertest ts-jest && \
+npm pkg set scripts.test="jest" && \
+npm pkg set jest.preset="ts-jest" && \
+npm pkg set jest.testEnvironment="node" && \
+cd ..  && \
+nono run --rollback --allow-cwd --profile claude-code -- claude --max-turns 5
  
-» prompt: "Add JWT auth middleware, write tests for it, then run the tests."
+» prompt: "Add JWT auth middleware with tests, then run npm test."
  
 
 ```
