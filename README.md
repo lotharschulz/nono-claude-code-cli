@@ -117,24 +117,59 @@ $ nono run --allow-cwd --net-block --profile claude-code -- claude
 ✻ Churned for 3m 2s  
 ```
 
-## Undo everything Claude wrote TODO
+## Undo everything Claude wrote
 
 Session ends badly — --rollback reverts all writes atomically
 
 ```sh
-$ cd ts-app && \
-sudo chown -R 501:20 "/Users/lotharschulz/.npm" && \
-npm install express jsonwebtoken && \
-npm install --save-dev @types/express @types/jsonwebtoken @types/jest @types/supertest jest supertest ts-jest && \
-npm pkg set scripts.test="jest" && \
-npm pkg set jest.preset="ts-jest" && \
-npm pkg set jest.testEnvironment="node" && \
-cd ..  && \
-nono run --rollback --allow-cwd --profile claude-code -- claude --max-turns 5
- 
-» prompt: "Add JWT auth middleware with tests, then run npm test."
- 
+$ nono run --rollback --allow-cwd --profile claude-code -- claude
 
+» prompt: "Add JWT auth middleware with tests, then run npm test."
+
+Press **shift+tab** to allow all edits silently. Watch the files appear in `ts-app/src/middleware/`. The moment you see `auth.ts` and `auth.test.ts` written — **hit `Ctrl+C`**.
+```
+
+```sh
+.......
+       7
+       8 export const JWT_SECRET = process.env.JWT_SECRET || "test-secret";
+       9
+      10 export function authenticateToken(
+     … +21 lines (ctrl+o to expand)
+
+⏺ Now create the Express app:
+
+⏺ Write(ts-app/src/app.ts)
+  ⎿  Wrote 8 lines to ts-app/src/app.ts
+      1 import express from "express";                                                                                              
+      2 import router from "./api";                                                                                               
+      3                                                                                                                             
+      4 const app = express();                                                                                                    
+      5 app.use(express.json());                                                                                                  
+      6 app.use("/api", router);
+      7
+      8 export default app;
+
+⏺ Now create the tests:
+  ⎿  Interrupted · What should Claude do instead?
+                                                                                                                                    
+───────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯                                                                                                                                   
+───────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Press Ctrl-C again to exit                                                                                    ◐ medium · /effort  
+
+
+Resume this session with:
+claude --resume 4ee47fc3-f42b-4539-a792-4352de7835f7
+
+  nono 2 files changed (2 created)
+nono Changes:
+  + /Users/ls/dev/nono-claude-code-cli/ts-app/src/app.ts (created) (+154 bytes)
+  + /Users/ls/dev/nono-claude-code-cli/ts-app/src/middleware/auth.ts (created) (+738 bytes)
+
+nono Restore to initial state? [y/N]:  y
+nono Restoring...
+nono Restored 2 files.
 ```
 
 ---
