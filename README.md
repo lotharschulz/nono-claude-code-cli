@@ -122,9 +122,9 @@ $ nono run --allow-cwd --net-block --profile claude-code -- claude
 Session ends badly — --rollback reverts all writes atomically
 
 ```sh
-$ nono run --rollback --profile claude-code --allow-cwd -- claude
+$ cd ts-app && npm install && cd .. && nono run --rollback --allow-cwd --profile claude-code -- claude --max-turns 5
  
-» prompt: "Add JWT authentication middleware to the API — create an auth module with login, token verification, and route protection."
+» prompt: "Add JWT auth middleware, write tests for it, then run the tests."
  
 
 ```
