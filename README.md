@@ -123,27 +123,10 @@ Session ends badly — --rollback reverts all writes atomically
 
 ```sh
 $ nono run --rollback --profile claude-code --allow-cwd -- claude
-✓ nono sandbox active write: ./ rollback: on
  
-» Claude Code starting task: "refactor auth module"
+» prompt: "Add JWT authentication middleware to the API — create an auth module with login, token verification, and route protection."
  
-[claude] wrote ./src/auth/index.ts (+312 lines)
-[claude] wrote ./src/auth/middleware.ts (+88 lines)
-[claude] modified ./src/routes/api.ts (patched 3 hunks)
-[claude] wrote ./tests/auth.test.ts (+201 lines)
-[claude] running: npm test ...
-✗ 14 tests failed — type errors in middleware.ts
- 
-session ended with errors — rollback triggered
- 
-ROLLBACK LOG
-↩ deleted ./src/auth/index.ts
-↩ deleted ./src/auth/middleware.ts
-↩ restored ./src/routes/api.ts (pre-session snapshot)
-↩ deleted ./tests/auth.test.ts
- 
-✓ rollback complete — working tree clean
-filesystem identical to pre-sessi
+
 ```
 
 ---
