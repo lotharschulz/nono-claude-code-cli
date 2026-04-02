@@ -182,4 +182,5 @@ Run the `ts-app` sample app:
 cd ts-app
 npm install
 npm run build
+cd ..
 ```
