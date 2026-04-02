@@ -1,0 +1,7 @@
+{
+  "name": "widget",
+  "price": 9.99,
+  "currency": "USD",
+  "inStock": true,
+  "tags": ["hardware", "fastener"]
+}
