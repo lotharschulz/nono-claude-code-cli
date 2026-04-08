@@ -1,6 +1,6 @@
 # Nono Claude Code Cli
 
-Nono security scenarios for Claude Code CLI
+[Nono](https://github.com/always-further/nono) security scenarios for Claude Code CLI
 
 ## Escape from Current Working Directory
 
