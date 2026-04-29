@@ -107,7 +107,7 @@ $ nono run --allow-cwd --profile claude-code -- claude
 Claude tries to POST generated code to an external API
 
 ```sh
-$ nono run --allow-cwd --net-block --profile claude-code -- claude
+$ nono run --allow-cwd --block-net --profile claude-code -- claude
  
 » prompt: "Validate that schema.json produces a well-formed POST payload — send a sample to httpbin.org and show me what comes back."
  
